@@ -1,0 +1,13 @@
+*~
+.classpath
+.idea
+*.iml
+*.jasper
+*.log
+MANIFEST.MF
+.project
+*.swp
+target
+.classspath
+/nbproject/private/
+nb-configuration.xml
