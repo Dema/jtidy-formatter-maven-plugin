@@ -15,10 +15,17 @@ package org.dema;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
-
+import org.apache.maven.project.MavenProject;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.codehaus.plexus.util.DirectoryScanner;
 import org.w3c.tidy.Tidy;
 
 /**
@@ -37,9 +44,71 @@ public class JTidyFormatter
 	 *
 	 * @parameter
 	 */
-	private Properties jTidyProperties;
+	private Properties jtidyConfiguration;
+	/**
+	 * @parameter default-value="${basedir}/src/main/webapp/"
+	 * @required
+	 */
+	private File sourceDir;
+	/**
+	 * @parameter
+	 */
+	private String[] includes;
+	/**
+	 * @parameter
+	 */
+	private String[] excludes;
 
 	public void execute()
 					throws MojoExecutionException {
+		tidy = new Tidy();
+
+
+
+
+		if (jtidyConfiguration == null) {
+
+			jtidyConfiguration = new Properties();
+		}
+		Properties config = new Properties();
+
+		config.put("input-encoding", "UTF-8");
+		config.put("output-encoding", "UTF-8");
+		config.put("input-xml", "true");
+		config.put("output-xml", "true");
+		config.put("indent", "true");
+		config.put("wrap", "120");
+		config.put("write-back", "true");
+
+		config.putAll(jtidyConfiguration);
+
+		tidy.setConfigurationFromProps(config);
+		if (includes == null) {
+			includes = new String[]{"**/*.xhtml"};
+		}
+
+		final DirectoryScanner directoryScanner = new DirectoryScanner();
+		directoryScanner.setIncludes(includes);
+		if (excludes != null) {
+			directoryScanner.setExcludes(excludes);
+		}
+		directoryScanner.setBasedir(sourceDir);
+		directoryScanner.scan();
+
+
+		for (String fileName : directoryScanner.getIncludedFiles()) {
+			try {
+				File dest = new File(sourceDir, fileName + ".tmp");
+				final File file = new File(sourceDir, fileName);
+
+				tidy.parse(new FileInputStream(file), new FileOutputStream(dest));
+
+				dest.renameTo(file);
+
+			} catch (FileNotFoundException ex) {
+				Logger.getLogger(JTidyFormatter.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+
 	}
 }
